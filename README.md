@@ -13,7 +13,7 @@ Each new query is automatically saved as a portable JSON snapshot in `datasets/`
 
 While a new YouTube query is running, the interface displays a blocking progress screen and disables its controls. The server also permits only one query at a time to prevent duplicate API work.
 
-New snapshots also request watch time, subscribers gained, channel-level traffic sources, and disclosed YouTube search terms. Supplemental traffic/search queries are best-effort: if YouTube does not expose one for the channel or period, the core dataset still saves successfully. Analysis includes trip view share and engagement, activity classifications, title-topic patterns, dormant-series prompts, recommendations, and history from prior snapshots created with matching parameters.
+New snapshots also request watch time, subscribers gained and lost, channel-level traffic sources, and disclosed YouTube search terms. Supplemental traffic/search queries are best-effort: if YouTube does not expose one for the channel or period, the core dataset still saves successfully. Analysis includes trip view share and engagement, net subscriber change, activity classifications, title-topic patterns, dormant-series prompts, recommendations, and history from prior snapshots created with matching parameters.
 
 ## One-time Google setup
 

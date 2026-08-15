@@ -85,7 +85,7 @@ def _analytics_rows(
 ) -> tuple[dict[str, dict[str, int]], bool]:
     if not video_ids:
         return {}, True
-    requested_metrics = "views,likes,shares,comments,estimatedMinutesWatched,subscribersGained"
+    requested_metrics = "views,likes,shares,comments,estimatedMinutesWatched,subscribersGained,subscribersLost"
     shares_available = True
     try:
         rows = _filtered_reports(analytics, start_date, end_date, requested_metrics, video_ids)
@@ -94,7 +94,7 @@ def _analytics_rows(
         if error.resp.status not in (400, 403):
             raise
         shares_available = False
-        requested_metrics = "views,likes,comments,estimatedMinutesWatched,subscribersGained"
+        requested_metrics = "views,likes,comments,estimatedMinutesWatched,subscribersGained,subscribersLost"
         rows = _filtered_reports(analytics, start_date, end_date, requested_metrics, video_ids)
 
     metrics = requested_metrics.split(",")
@@ -217,6 +217,7 @@ def build_report(credentials: Credentials, exclusion_days: int, window_days: int
             "comments": metrics.get("comments", 0),
             "watch_minutes": metrics.get("estimatedMinutesWatched", 0),
             "subscribers_gained": metrics.get("subscribersGained", 0),
+            "subscribers_lost": metrics.get("subscribersLost", 0),
             "previous_views": prior_views,
             "surge_percent": surge_percent,
         })

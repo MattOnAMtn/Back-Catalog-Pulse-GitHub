@@ -82,6 +82,8 @@ def analyze_dataset(dataset: dict[str, Any], histories: list[dict[str, Any]] | N
             episode_retention = round(later_average / episodes[0][1] * 100, 1)
         views = sum(row["views"] for row in active_rows)
         previous_views = sum(row["previous_views"] for row in active_rows)
+        subscribers_gained = sum(row.get("subscribers_gained", 0) for row in active_rows)
+        subscribers_lost = sum(row.get("subscribers_lost", 0) for row in active_rows)
         groups[name] = {
             "name": _display_name(name),
             "video_count": len(catalog_ids),
@@ -91,8 +93,11 @@ def analyze_dataset(dataset: dict[str, Any], histories: list[dict[str, Any]] | N
             "comments": sum(row["comments"] for row in active_rows),
             "shares": sum(row["shares"] for row in active_rows),
             "watch_hours": round(sum(row.get("watch_minutes", 0) for row in active_rows) / 60, 1),
-            "subscribers_gained": sum(row.get("subscribers_gained", 0) for row in active_rows),
+            "subscribers_gained": subscribers_gained,
+            "subscribers_lost": subscribers_lost,
+            "subscriber_change": subscribers_gained - subscribers_lost,
             "previous_views": previous_views,
+            "view_change": views - previous_views,
             "change_percent": None if previous_views == 0 else round((views - previous_views) / previous_views * 100, 1),
             "engagement_rate": round(
                 sum(row["likes"] + row["comments"] + row["shares"] for row in active_rows) / views * 100,

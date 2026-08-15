@@ -38,3 +38,5 @@ class DatasetAnalysisTest(TestCase):
         self.assertTrue(any("Bonaire '24" in name for name in names))
         mississippi = next(trip for trip in analysis["trips"] if "Mississippi Source to Sea" in trip["name"])
         self.assertEqual(mississippi["episode_retention"], 80.0)
+        self.assertEqual(mississippi["view_change"], 50)
+        self.assertEqual(mississippi["subscriber_change"], 0)

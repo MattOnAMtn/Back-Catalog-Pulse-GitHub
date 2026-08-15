@@ -56,6 +56,12 @@ def commas(value):
     return f"{int(value):,}"
 
 
+@app.template_filter("signed_commas")
+def signed_commas(value):
+    number = int(value or 0)
+    return f"{number:+,}"
+
+
 def _flow(state: str | None = None) -> Flow:
     return Flow.from_client_secrets_file(
         str(CLIENT_SECRET_PATH),
