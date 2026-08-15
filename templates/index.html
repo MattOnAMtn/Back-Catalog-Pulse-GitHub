@@ -49,7 +49,7 @@
             <select name="dataset" onchange="this.form.submit()">
               {% if not datasets %}<option>No saved datasets yet</option>{% endif %}
               {% for item in datasets %}
-                <option value="{{ item.filename }}" {{ 'selected' if item.filename == selected_dataset else '' }}>{{ item.generated_at|local_timestamp }} · Videos {{ item.exclusion_days }}+ days old · {{ item.window_days }}-day activity · {{ item.row_count }} of {{ item.eligible_count }} eligible active</option>
+                <option value="{{ item.filename }}" {{ 'selected' if item.filename == selected_dataset else '' }}>{{ item.generated_at|local_timestamp }} · Videos {{ item.exclusion_days }}+ days old · {{ item.window_days }}-day activity · {{ item.row_count|commas }} of {{ item.eligible_count|commas }} eligible active</option>
               {% endfor %}
             </select>
           </label>
@@ -73,10 +73,10 @@
             <div class="analysis-heading"><div><p class="eyebrow">Pattern analysis</p><h2>What’s trending</h2></div><span>{{ report.generated_at.strftime('%b %-d, %Y at %-I:%M %p') }}</span></div>
             <p class="analysis-summary">{{ analysis.summary }}</p>
             <div class="signal-cards">
-              <div><strong>{{ analysis.classification_counts.surging }}</strong><span>surging</span></div>
-              <div><strong>{{ analysis.classification_counts.evergreen }}</strong><span>evergreen</span></div>
-              <div><strong>{{ analysis.classification_counts.newly_active }}</strong><span>newly active</span></div>
-              <div><strong>{{ analysis.classification_counts.declining }}</strong><span>declining</span></div>
+              <div><strong>{{ analysis.classification_counts.surging|commas }}</strong><span>surging</span></div>
+              <div><strong>{{ analysis.classification_counts.evergreen|commas }}</strong><span>evergreen</span></div>
+              <div><strong>{{ analysis.classification_counts.newly_active|commas }}</strong><span>newly active</span></div>
+              <div><strong>{{ analysis.classification_counts.declining|commas }}</strong><span>declining</span></div>
             </div>
             {% if analysis.recommendations %}
               <div class="recommendations"><h3>Recommended actions</h3><ol>{% for recommendation in analysis.recommendations %}<li>{{ recommendation }}</li>{% endfor %}</ol></div>
@@ -84,18 +84,18 @@
             <div class="analysis-grid">
               <div><h3>Major detected trips</h3><div class="trip-list">
                 {% for trip in analysis.trips %}
-                  <div class="trip"><div><strong>{{ trip.name }}</strong><small>{{ trip.active_count }} of {{ trip.video_count }} videos active · {{ trip.engagement_rate }} interactions/100 views{% if trip.episode_retention is not none %} · later episodes average {{ trip.episode_retention }}% of Episode 1 views{% endif %}</small></div><div class="trip-metrics"><strong>{{ '{:,}'.format(trip.views) }} views · {{ trip.view_share }}%</strong><small>{{ trip.watch_hours }} watch hours · {{ trip.subscribers_gained }} subscribers · {% if trip.change_percent is none %}new activity{% elif trip.change_percent > 0 %}+{{ trip.change_percent }}%{% else %}{{ trip.change_percent }}%{% endif %} vs prior</small></div></div>
+                  <div class="trip"><div><strong>{{ trip.name }}</strong><small>{{ trip.active_count|commas }} of {{ trip.video_count|commas }} videos active · {{ trip.engagement_rate }} interactions/100 views{% if trip.episode_retention is not none %} · later episodes average {{ trip.episode_retention }}% of Episode 1 views{% endif %}</small></div><div class="trip-metrics"><strong>{{ trip.views|commas }} views · {{ trip.view_share }}%</strong><small>{{ trip.watch_hours }} watch hours · {{ trip.subscribers_gained|commas }} subscribers · {% if trip.change_percent is none %}new activity{% elif trip.change_percent > 0 %}+{{ trip.change_percent }}%{% else %}{{ trip.change_percent }}%{% endif %} vs prior</small></div></div>
                 {% else %}<p>No repeated trip-title patterns were detected.</p>{% endfor %}
               </div>
-              <div><h3>Leading videos</h3><ol class="leaders">{% for video in analysis.top_videos %}<li><span>{{ video.title }}</span><strong>{{ video.views }} views</strong></li>{% endfor %}</ol></div>
+              <div><h3>Leading videos</h3><ol class="leaders">{% for video in analysis.top_videos %}<li><span>{{ video.title }}</span><strong>{{ video.views|commas }} views</strong></li>{% endfor %}</ol></div>
             </div>
             <div class="analysis-grid secondary">
-              <div><h3>Active title topics</h3><div class="topic-chips">{% for topic in analysis.topic_patterns %}<span><strong>{{ topic.topic }}</strong> {{ topic.views }} views across {{ topic.videos }}</span>{% else %}<span>Not enough repeated title terms.</span>{% endfor %}</div></div>
-              <div><h3>Traffic sources</h3><ol class="ranked-list">{% for source in analysis.traffic_sources[:8] %}<li><span>{{ source.source.replace('_', ' ').title() }}</span><strong>{{ source.views }} views</strong></li>{% else %}<li>Not available in this snapshot.</li>{% endfor %}</ol></div>
+              <div><h3>Active title topics</h3><div class="topic-chips">{% for topic in analysis.topic_patterns %}<span><strong>{{ topic.topic }}</strong> {{ topic.views|commas }} views across {{ topic.videos|commas }}</span>{% else %}<span>Not enough repeated title terms.</span>{% endfor %}</div></div>
+              <div><h3>Traffic sources</h3><ol class="ranked-list">{% for source in analysis.traffic_sources[:8] %}<li><span>{{ source.source.replace('_', ' ').title() }}</span><strong>{{ source.views|commas }} views</strong></li>{% else %}<li>Not available in this snapshot.</li>{% endfor %}</ol></div>
             </div>
             <div class="analysis-grid secondary">
-              <div><h3>YouTube search terms</h3><ol class="ranked-list">{% for term in analysis.search_terms[:10] %}<li><span>{{ term.term }}</span><strong>{{ term.views }} views</strong></li>{% else %}<li>Not available or withheld by YouTube.</li>{% endfor %}</ol></div>
-              <div><h3>Saved-query history</h3><ol class="ranked-list">{% for point in analysis.history_points[-8:] %}<li><span>{{ point.generated_at|local_timestamp }}</span><strong>{{ point.views }} views · {{ point.active_videos }} videos</strong></li>{% else %}<li>Run more queries with these same parameters to build history.</li>{% endfor %}</ol></div>
+              <div><h3>YouTube search terms</h3><ol class="ranked-list">{% for term in analysis.search_terms[:10] %}<li><span>{{ term.term }}</span><strong>{{ term.views|commas }} views</strong></li>{% else %}<li>Not available or withheld by YouTube.</li>{% endfor %}</ol></div>
+              <div><h3>Saved-query history</h3><ol class="ranked-list">{% for point in analysis.history_points[-8:] %}<li><span>{{ point.generated_at|local_timestamp }}</span><strong>{{ point.views|commas }} views · {{ point.active_videos|commas }} videos</strong></li>{% else %}<li>Run more queries with these same parameters to build history.</li>{% endfor %}</ol></div>
             </div>
             <p class="method">{{ analysis.method_note }}</p>
           </section>
@@ -103,11 +103,11 @@
         <section class="coverage card">
           <div class="coverage-heading"><div><p class="eyebrow">Channel coverage</p><h2>What this dataset includes</h2></div><p>Includes videos published on or before <strong>{{ report.published_cutoff_date.strftime('%b %-d, %Y') }}</strong>. Activity measured <strong>{{ report.start_date.strftime('%b %-d') }}–{{ report.end_date.strftime('%b %-d, %Y') }}</strong>, compared with {{ report.previous_start_date.strftime('%b %-d') }}–{{ report.previous_end_date.strftime('%b %-d, %Y') }}.</p></div>
           <div class="coverage-grid">
-            <div><strong>{{ report.total_channel_videos if report.total_channel_videos is not none else '—' }}</strong><span>Total channel videos</span></div>
-            <div><strong>{{ report.excluded_recent_count if report.excluded_recent_count is not none else '—' }}</strong><span>Excluded: published in last {{ exclusion_days }} days</span></div>
-            <div><strong>{{ report.eligible_count }}</strong><span>Eligible older videos</span></div>
-            <div class="highlight"><strong>{{ report.rows|length }}</strong><span>With activity in selected {{ window_days }} days</span></div>
-            <div><strong>{{ report.inactive_eligible_count }}</strong><span>Eligible with no activity</span></div>
+            <div><strong>{{ report.total_channel_videos|commas }}</strong><span>Total channel videos</span></div>
+            <div><strong>{{ report.excluded_recent_count|commas }}</strong><span>Excluded: published in last {{ exclusion_days }} days</span></div>
+            <div><strong>{{ report.eligible_count|commas }}</strong><span>Eligible older videos</span></div>
+            <div class="highlight"><strong>{{ (report.rows|length)|commas }}</strong><span>With activity in selected {{ window_days }} days</span></div>
+            <div><strong>{{ report.inactive_eligible_count|commas }}</strong><span>Eligible with no activity</span></div>
           </div>
         </section>
         {% if not report.shares_available %}
@@ -134,7 +134,7 @@
                   <td class="number" data-sort="{{ row.likes }}">{{ '{:,}'.format(row.likes) }}</td>
                   <td class="number" data-sort="{{ row.shares }}">{{ '{:,}'.format(row.shares) }}</td>
                   <td class="number" data-sort="{{ row.comments }}">{{ '{:,}'.format(row.comments) }}</td>
-                  <td class="number surge {{ 'up' if row.surge_percent is none or row.surge_percent > 0 else 'down' }}" data-sort="{{ 999999999 if row.surge_percent is none else row.surge_percent }}">{% if row.surge_percent is none %}New{% elif row.surge_percent > 0 %}+{{ row.surge_percent }}%{% else %}{{ row.surge_percent }}%{% endif %}<small>from {{ row.previous_views }} views</small></td>
+                  <td class="number surge {{ 'up' if row.surge_percent is none or row.surge_percent > 0 else 'down' }}" data-sort="{{ 999999999 if row.surge_percent is none else row.surge_percent }}">{% if row.surge_percent is none %}New{% elif row.surge_percent > 0 %}+{{ row.surge_percent }}%{% else %}{{ row.surge_percent }}%{% endif %}<small>from {{ row.previous_views|commas }} views</small></td>
                 </tr>
               {% else %}
                 <tr><td colspan="7" class="empty">No qualifying older videos received views in this activity window.</td></tr>

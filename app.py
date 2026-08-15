@@ -49,6 +49,13 @@ def local_timestamp(value):
     return parsed.astimezone().strftime("%b %-d, %Y · %-I:%M %p")
 
 
+@app.template_filter("commas")
+def commas(value):
+    if value is None:
+        return "—"
+    return f"{int(value):,}"
+
+
 def _flow(state: str | None = None) -> Flow:
     return Flow.from_client_secrets_file(
         str(CLIENT_SECRET_PATH),
