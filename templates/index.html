@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Back Catalog Pulse</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div>
+        <p class="eyebrow">YouTube channel analytics</p>
+        <h1>Back Catalog Pulse</h1>
+        <p class="lede">See which older videos are getting attention right now.</p>
+      </div>
+      {% if connected %}
+      <form action="{{ url_for('disconnect') }}" method="post"><button class="quiet">Disconnect</button></form>
+      {% endif %}
+    </header>
+
+    {% if not connected %}
+      <section class="welcome card">
+        <h2>Connect your channel</h2>
+        {% if missing_secret %}
+          <p>Add <code>client_secret.json</code> beside <code>app.py</code> first. The README walks through the one-time Google Cloud setup.</p>
+          <button disabled>OAuth setup required</button>
+        {% else %}
+          <p>You’ll sign in with Google and grant read-only access to your channel and analytics.</p>
+          <a class="button" href="{{ url_for('connect') }}">Connect YouTube</a>
+        {% endif %}
+      </section>
+    {% else %}
+      <form class="controls card" method="get" action="{{ url_for('new_query') }}">
+        <label>Exclude videos newer than
+          <span><input name="exclude" type="number" min="1" max="36500" value="{{ exclusion_days }}"> days</span>
+        </label>
+        <label>Activity window
+          <span><input name="window" type="number" min="1" max="365" value="{{ window_days }}"> days</span>
+        </label>
+        <button type="submit">New YouTube query</button>
+      </form>
+
+      <section class="dataset-bar card">
+        <form method="get" action="{{ url_for('index') }}">
+          <label>Saved datasets
+            <select name="dataset" onchange="this.form.submit()">
+              {% if not datasets %}<option>No saved datasets yet</option>{% endif %}
+              {% for item in datasets %}
+                <option value="{{ item.filename }}" {{ 'selected' if item.filename == selected_dataset else '' }}>{{ item.generated_at[:16].replace('T', ' ') }} · {{ item.exclusion_days }}d excluded · {{ item.window_days }}d activity · {{ item.row_count }} videos</option>
+              {% endfor %}
+            </select>
+          </label>
+        </form>
+        {% if selected_dataset %}
+          <div class="dataset-actions">
+            <a class="button analyze" href="{{ url_for('analyze', dataset=selected_dataset) }}">Analyze</a>
+            <a class="button quiet-link" href="{{ url_for('download_dataset', filename=selected_dataset) }}">Download JSON</a>
+          </div>
+        {% endif %}
+        <form class="import" method="post" action="{{ url_for('upload_dataset') }}" enctype="multipart/form-data">
+          <label class="file-label">Import JSON<input type="file" name="dataset_file" accept="application/json,.json" onchange="this.form.submit()"></label>
+        </form>
+      </section>
+
+      {% if error %}
+        <section class="error card"><strong>Couldn’t load analytics.</strong><p>{{ error }}</p></section>
+      {% elif report %}
+        {% if analysis %}
+          <section class="analysis card" id="analysis">
+            <div class="analysis-heading"><div><p class="eyebrow">Pattern analysis</p><h2>What’s trending</h2></div><span>{{ report.generated_at.strftime('%b %-d, %Y at %-I:%M %p') }}</span></div>
+            <p class="analysis-summary">{{ analysis.summary }}</p>
+            <div class="signal-cards">
+              <div><strong>{{ analysis.classification_counts.surging }}</strong><span>surging</span></div>
+              <div><strong>{{ analysis.classification_counts.evergreen }}</strong><span>evergreen</span></div>
+              <div><strong>{{ analysis.classification_counts.newly_active }}</strong><span>newly active</span></div>
+              <div><strong>{{ analysis.classification_counts.declining }}</strong><span>declining</span></div>
+            </div>
+            {% if analysis.recommendations %}
+              <div class="recommendations"><h3>Recommended actions</h3><ol>{% for recommendation in analysis.recommendations %}<li>{{ recommendation }}</li>{% endfor %}</ol></div>
+            {% endif %}
+            <div class="analysis-grid">
+              <div><h3>Major detected trips</h3><div class="trip-list">
+                {% for trip in analysis.trips %}
+                  <div class="trip"><div><strong>{{ trip.name }}</strong><small>{{ trip.active_count }} of {{ trip.video_count }} videos active · {{ trip.engagement_rate }} interactions/100 views{% if trip.episode_retention is not none %} · later episodes average {{ trip.episode_retention }}% of Episode 1 views{% endif %}</small></div><div class="trip-metrics"><strong>{{ '{:,}'.format(trip.views) }} views · {{ trip.view_share }}%</strong><small>{{ trip.watch_hours }} watch hours · {{ trip.subscribers_gained }} subscribers · {% if trip.change_percent is none %}new activity{% elif trip.change_percent > 0 %}+{{ trip.change_percent }}%{% else %}{{ trip.change_percent }}%{% endif %} vs prior</small></div></div>
+                {% else %}<p>No repeated trip-title patterns were detected.</p>{% endfor %}
+              </div>
+              <div><h3>Leading videos</h3><ol class="leaders">{% for video in analysis.top_videos %}<li><span>{{ video.title }}</span><strong>{{ video.views }} views</strong></li>{% endfor %}</ol></div>
+            </div>
+            <div class="analysis-grid secondary">
+              <div><h3>Active title topics</h3><div class="topic-chips">{% for topic in analysis.topic_patterns %}<span><strong>{{ topic.topic }}</strong> {{ topic.views }} views across {{ topic.videos }}</span>{% else %}<span>Not enough repeated title terms.</span>{% endfor %}</div></div>
+              <div><h3>Traffic sources</h3><ol class="ranked-list">{% for source in analysis.traffic_sources[:8] %}<li><span>{{ source.source.replace('_', ' ').title() }}</span><strong>{{ source.views }} views</strong></li>{% else %}<li>Not available in this snapshot.</li>{% endfor %}</ol></div>
+            </div>
+            <div class="analysis-grid secondary">
+              <div><h3>YouTube search terms</h3><ol class="ranked-list">{% for term in analysis.search_terms[:10] %}<li><span>{{ term.term }}</span><strong>{{ term.views }} views</strong></li>{% else %}<li>Not available or withheld by YouTube.</li>{% endfor %}</ol></div>
+              <div><h3>Saved-query history</h3><ol class="ranked-list">{% for point in analysis.history_points[-8:] %}<li><span>{{ point.generated_at[:16].replace('T', ' ') }}</span><strong>{{ point.views }} views · {{ point.active_videos }} videos</strong></li>{% else %}<li>Run more queries with these same parameters to build history.</li>{% endfor %}</ol></div>
+            </div>
+            <p class="method">{{ analysis.method_note }}</p>
+          </section>
+        {% endif %}
+        <div class="summary">
+          <div class="summary-counts"><span><strong>{{ report.rows|length }}</strong> active older videos</span>{% if report.excluded_recent_count is not none %}<span><strong>{{ report.excluded_recent_count }}</strong> excluded by {{ exclusion_days }}-day cutoff</span>{% endif %}</div>
+          <p>{{ report.start_date.strftime('%b %-d') }}–{{ report.end_date.strftime('%b %-d, %Y') }} compared with {{ report.previous_start_date.strftime('%b %-d') }}–{{ report.previous_end_date.strftime('%b %-d') }}</p>
+        </div>
+        {% if not report.shares_available %}
+          <p class="notice">Shares aren’t available for this channel/report combination, so that column shows zero. All other metrics are unaffected.</p>
+        {% endif %}
+        <section class="table-card">
+          <div class="table-wrap">
+            <table id="report">
+              <thead><tr>
+                <th data-type="text">Video</th>
+                <th data-type="number">Published / age</th>
+                <th data-type="number" data-direction="asc" class="number active-sort">Views</th>
+                <th data-type="number" class="number">Likes</th>
+                <th data-type="number" class="number">Shares</th>
+                <th data-type="number" class="number">Comments</th>
+                <th data-type="number" class="number">Surging</th>
+              </tr></thead>
+              <tbody>
+              {% for row in report.rows %}
+                <tr>
+                  <td data-sort="{{ row.title|lower }}"><a class="video" href="https://www.youtube.com/watch?v={{ row.video_id }}" target="_blank" rel="noopener">{% if row.thumbnail %}<img src="{{ row.thumbnail }}" alt="">{% endif %}<span>{{ row.title }}</span></a></td>
+                  <td data-sort="{{ row.published_timestamp }}"><span class="date">{{ row.published_at }}</span><small>{{ row.age_days }} days old</small></td>
+                  <td class="number" data-sort="{{ row.views }}">{{ '{:,}'.format(row.views) }}</td>
+                  <td class="number" data-sort="{{ row.likes }}">{{ '{:,}'.format(row.likes) }}</td>
+                  <td class="number" data-sort="{{ row.shares }}">{{ '{:,}'.format(row.shares) }}</td>
+                  <td class="number" data-sort="{{ row.comments }}">{{ '{:,}'.format(row.comments) }}</td>
+                  <td class="number surge {{ 'up' if row.surge_percent is none or row.surge_percent > 0 else 'down' }}" data-sort="{{ 999999999 if row.surge_percent is none else row.surge_percent }}">{% if row.surge_percent is none %}New{% elif row.surge_percent > 0 %}+{{ row.surge_percent }}%{% else %}{{ row.surge_percent }}%{% endif %}<small>from {{ row.previous_views }} views</small></td>
+                </tr>
+              {% else %}
+                <tr><td colspan="7" class="empty">No qualifying older videos received views in this activity window.</td></tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </section>
+        <p class="footnote">Analytics uses complete UTC days through yesterday; YouTube may revise recent data as it finalizes. “Surging” is the change in views versus the immediately preceding equal-length window.</p>
+      {% endif %}
+    {% endif %}
+  </main>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

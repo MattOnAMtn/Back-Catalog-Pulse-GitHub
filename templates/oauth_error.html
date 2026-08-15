@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Connection problem · Back Catalog Pulse</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main class="shell">
+    <p class="eyebrow">YouTube channel analytics</p>
+    <h1>Connection didn’t finish</h1>
+    <section class="error card oauth-error">
+      <p>The app received Google’s response but couldn’t finish saving the connection.</p>
+      <details open>
+        <summary>Technical detail</summary>
+        <code>{{ error }}</code>
+      </details>
+      <p>This detail is also saved in <code>back_catalog_pulse.log</code>.</p>
+      <a class="button" href="{{ url_for('index') }}">Return to the app</a>
+    </section>
+  </main>
+</body>
+</html>
