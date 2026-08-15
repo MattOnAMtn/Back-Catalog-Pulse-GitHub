@@ -32,9 +32,9 @@
       </section>
     {% else %}
       <form class="controls card" id="query-form" method="get" action="{{ url_for('new_query') }}">
-        <label>Exclude videos newer than
-          <span><input name="exclude" type="number" min="1" max="36500" value="{{ exclusion_days }}"> days</span>
-          {% if report %}<small>Includes videos published on or before {{ report.published_cutoff_date.strftime('%b %-d, %Y') }}.</small>{% endif %}
+        <label>Include videos published on or before
+          <span><input name="cutoff" type="date" value="{{ cutoff_date.isoformat() if cutoff_date else '' }}"></span>
+          <small>Videos published after this date will be excluded.</small>
         </label>
         <label>Activity window
           <span><input name="window" type="number" min="1" max="365" value="{{ window_days }}"> days</span>
@@ -49,7 +49,7 @@
             <select name="dataset" onchange="this.form.submit()">
               {% if not datasets %}<option>No saved datasets yet</option>{% endif %}
               {% for item in datasets %}
-                <option value="{{ item.filename }}" {{ 'selected' if item.filename == selected_dataset else '' }}>{{ item.generated_at|local_timestamp }} · Videos {{ item.exclusion_days }}+ days old · {{ item.window_days }}-day activity · {{ item.row_count|commas }} of {{ item.eligible_count|commas }} eligible active</option>
+                <option value="{{ item.filename }}" {{ 'selected' if item.filename == selected_dataset else '' }}>{{ item.generated_at|local_timestamp }} · {% if item.cutoff_date %}Published through {{ item.cutoff_date }}{% else %}Videos {{ item.exclusion_days }}+ days old{% endif %} · {{ item.window_days }}-day activity · {{ item.row_count|commas }} of {{ item.eligible_count|commas }} eligible active</option>
               {% endfor %}
             </select>
           </label>
@@ -104,7 +104,7 @@
           <div class="coverage-heading"><div><p class="eyebrow">Channel coverage</p><h2>What this dataset includes</h2></div><p>Includes videos published on or before <strong>{{ report.published_cutoff_date.strftime('%b %-d, %Y') }}</strong>. Activity measured <strong>{{ report.start_date.strftime('%b %-d') }}–{{ report.end_date.strftime('%b %-d, %Y') }}</strong>, compared with {{ report.previous_start_date.strftime('%b %-d') }}–{{ report.previous_end_date.strftime('%b %-d, %Y') }}.</p></div>
           <div class="coverage-grid">
             <div><strong>{{ report.total_channel_videos|commas }}</strong><span>Total channel videos</span></div>
-            <div><strong>{{ report.excluded_recent_count|commas }}</strong><span>Excluded: published in last {{ exclusion_days }} days</span></div>
+            <div><strong>{{ report.excluded_recent_count|commas }}</strong><span>Excluded: published after {{ report.published_cutoff_date.strftime('%b %-d, %Y') }}</span></div>
             <div><strong>{{ report.eligible_count|commas }}</strong><span>Eligible older videos</span></div>
             <div class="highlight"><strong>{{ (report.rows|length)|commas }}</strong><span>With activity in selected {{ window_days }} days</span></div>
             <div><strong>{{ report.inactive_eligible_count|commas }}</strong><span>Eligible with no activity</span></div>

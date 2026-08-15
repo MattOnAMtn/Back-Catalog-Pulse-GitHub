@@ -19,10 +19,14 @@ def _json_default(value):
     raise TypeError(f"Cannot serialize {type(value).__name__}")
 
 
-def report_to_dataset(report: ReportResult, exclusion_days: int, window_days: int) -> dict[str, Any]:
+def report_to_dataset(report: ReportResult, exclusion_days: int, window_days: int, cutoff_date: str | None = None) -> dict[str, Any]:
+    cutoff = cutoff_date or report.published_cutoff_date
+    query = {"exclusion_days": exclusion_days, "window_days": window_days}
+    if cutoff:
+        query["cutoff_date"] = cutoff
     return {
         "schema_version": SCHEMA_VERSION,
-        "query": {"exclusion_days": exclusion_days, "window_days": window_days},
+        "query": query,
         "report": asdict(report),
     }
 
@@ -37,8 +41,14 @@ def validate_dataset(data: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("The file is not a complete Back Catalog Pulse dataset.")
     exclusion = int(query.get("exclusion_days", 0))
     window = int(query.get("window_days", 0))
-    if exclusion < 1 or window < 1:
+    cutoff = query.get("cutoff_date")
+    if (exclusion < 0 if cutoff else exclusion < 1) or window < 1:
         raise ValueError("The dataset has invalid query parameters.")
+    if cutoff:
+        try:
+            date.fromisoformat(cutoff)
+        except (TypeError, ValueError) as error:
+            raise ValueError("The dataset has an invalid publication cutoff date.") from error
     return data
 
 
@@ -47,11 +57,13 @@ def save_dataset(directory: Path, data: dict[str, Any]) -> str:
     generated_value = data["report"]["generated_at"]
     generated = generated_value if isinstance(generated_value, datetime) else datetime.fromisoformat(generated_value.replace("Z", "+00:00"))
     base = generated.strftime("%Y%m%d-%H%M%S")
-    filename = f"{base}-exclude-{data['query']['exclusion_days']}-window-{data['query']['window_days']}.json"
+    cutoff = data["query"].get("cutoff_date")
+    cutoff_label = f"cutoff-{cutoff}" if cutoff else f"exclude-{data['query']['exclusion_days']}"
+    filename = f"{base}-{cutoff_label}-window-{data['query']['window_days']}.json"
     path = directory / filename
     suffix = 2
     while path.exists():
-        path = directory / f"{base}-{suffix}-exclude-{data['query']['exclusion_days']}-window-{data['query']['window_days']}.json"
+        path = directory / f"{base}-{suffix}-{cutoff_label}-window-{data['query']['window_days']}.json"
         suffix += 1
     path.write_text(json.dumps(data, indent=2, default=_json_default), encoding="utf-8")
     return path.name
@@ -76,6 +88,7 @@ def list_datasets(directory: Path) -> list[dict[str, Any]]:
                 "filename": path.name,
                 "generated_at": report["generated_at"],
                 "exclusion_days": data["query"]["exclusion_days"],
+                "cutoff_date": data["query"].get("cutoff_date") or report.get("published_cutoff_date"),
                 "window_days": data["query"]["window_days"],
                 "row_count": len(report["rows"]),
                 "eligible_count": len(report.get("catalog", report["rows"])),

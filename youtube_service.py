@@ -215,7 +215,7 @@ def _supplemental_insights(analytics, start_date: date, end_date: date) -> dict[
     return insights
 
 
-def build_report(credentials: Credentials, exclusion_days: int, window_days: int) -> ReportResult:
+def build_report(credentials: Credentials, published_cutoff_date: date, window_days: int) -> ReportResult:
     youtube = build("youtube", "v3", credentials=credentials, cache_discovery=False)
     analytics = build("youtubeAnalytics", "v2", credentials=credentials, cache_discovery=False)
 
@@ -225,7 +225,7 @@ def build_report(credentials: Credentials, exclusion_days: int, window_days: int
     start_date = end_date - timedelta(days=window_days - 1)
     previous_end = start_date - timedelta(days=1)
     previous_start = previous_end - timedelta(days=window_days - 1)
-    published_cutoff = datetime.now(timezone.utc) - timedelta(days=exclusion_days)
+    published_cutoff = published_cutoff_date
 
     uploads = _all_uploads(youtube)
     playlist_memberships = _playlist_memberships(youtube)
@@ -234,7 +234,7 @@ def build_report(credentials: Credentials, exclusion_days: int, window_days: int
     eligible_ids = [
         video_id
         for video_id, video in uploads.items()
-        if video["published_at"] <= published_cutoff
+        if video["published_at"].date() <= published_cutoff
     ]
     current, shares_current = _analytics_rows(analytics, start_date, end_date, eligible_ids)
     previous, shares_previous = _analytics_rows(analytics, previous_start, previous_end, eligible_ids)
@@ -242,7 +242,7 @@ def build_report(credentials: Credentials, exclusion_days: int, window_days: int
 
     for video_id, metrics in current.items():
         video = uploads.get(video_id)
-        if not video or video["published_at"] > published_cutoff:
+        if not video or video["published_at"].date() > published_cutoff:
             continue
         prior = previous.get(video_id, {})
         views = metrics.get("views", 0)
@@ -276,7 +276,7 @@ def build_report(credentials: Credentials, exclusion_days: int, window_days: int
             "playlists": video.get("playlists", []),
         }
         for video_id, video in uploads.items()
-        if video["published_at"] <= published_cutoff
+        if video["published_at"].date() <= published_cutoff
     ]
     return ReportResult(
         rows=rows,
@@ -287,7 +287,7 @@ def build_report(credentials: Credentials, exclusion_days: int, window_days: int
         previous_end_date=previous_end,
         shares_available=shares_current and shares_previous,
         generated_at=datetime.now(timezone.utc),
-        excluded_recent_count=sum(1 for video in uploads.values() if video["published_at"] > published_cutoff),
+        excluded_recent_count=sum(1 for video in uploads.values() if video["published_at"].date() > published_cutoff),
         insights=_supplemental_insights(analytics, start_date, end_date),
-        published_cutoff_date=published_cutoff.date().isoformat(),
+        published_cutoff_date=published_cutoff.isoformat(),
     )

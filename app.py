@@ -39,6 +39,16 @@ app.logger.setLevel(logging.INFO)
 QUERY_LOCK = threading.Lock()
 
 
+def _requested_cutoff() -> date:
+    default = date.today() - timedelta(days=90)
+    value = request.args.get("cutoff", default.isoformat())
+    try:
+        parsed = date.fromisoformat(value)
+    except ValueError:
+        return default
+    return min(parsed, date.today())
+
+
 @app.template_filter("local_timestamp")
 def local_timestamp(value):
     if not value:
@@ -96,10 +106,13 @@ def _report_view(data):
 
 def _render_saved(data, filename, analysis=None, status=None):
     query = data["query"]
+    report = _report_view(data)
+    cutoff_date = date.fromisoformat(query.get("cutoff_date") or report.published_cutoff_date.isoformat())
     return render_template(
         "index.html",
         connected=True,
-        report=_report_view(data),
+        report=report,
+        cutoff_date=cutoff_date,
         exclusion_days=query["exclusion_days"],
         window_days=query["window_days"],
         datasets=list_datasets(DATASETS_DIR),
@@ -111,7 +124,8 @@ def _render_saved(data, filename, analysis=None, status=None):
 
 @app.route("/")
 def index():
-    exclusion_days = max(1, min(request.args.get("exclude", 90, type=int), 36500))
+    cutoff_date = _requested_cutoff()
+    exclusion_days = max((date.today() - cutoff_date).days, 0)
     window_days = max(1, min(request.args.get("window", 30, type=int), 365))
     credentials = _credentials()
     if not credentials:
@@ -122,13 +136,14 @@ def index():
         try:
             return _render_saved(load_dataset(DATASETS_DIR, selected), selected)
         except (ValueError, OSError) as error:
-            return render_template("index.html", connected=True, datasets=datasets, exclusion_days=exclusion_days, window_days=window_days, error=str(error)), 400
-    return render_template("index.html", connected=True, datasets=datasets, exclusion_days=exclusion_days, window_days=window_days)
+            return render_template("index.html", connected=True, datasets=datasets, cutoff_date=cutoff_date, exclusion_days=exclusion_days, window_days=window_days, error=str(error)), 400
+    return render_template("index.html", connected=True, datasets=datasets, cutoff_date=cutoff_date, exclusion_days=exclusion_days, window_days=window_days)
 
 
 @app.route("/query")
 def new_query():
-    exclusion_days = max(1, min(request.args.get("exclude", 90, type=int), 36500))
+    cutoff_date = _requested_cutoff()
+    exclusion_days = max((date.today() - cutoff_date).days, 0)
     window_days = max(1, min(request.args.get("window", 30, type=int), 365))
     credentials = _credentials()
     if not credentials:
@@ -137,20 +152,22 @@ def new_query():
         return render_template(
             "index.html",
             connected=True,
+            cutoff_date=cutoff_date,
             exclusion_days=exclusion_days,
             window_days=window_days,
             datasets=list_datasets(DATASETS_DIR),
             error="A YouTube query is already running. Please keep its window open until it finishes.",
         ), 409
     try:
-        report = build_report(credentials, exclusion_days, window_days)
-        filename = save_dataset(DATASETS_DIR, report_to_dataset(report, exclusion_days, window_days))
+        report = build_report(credentials, cutoff_date, window_days)
+        filename = save_dataset(DATASETS_DIR, report_to_dataset(report, exclusion_days, window_days, cutoff_date.isoformat()))
         return redirect(url_for("index", dataset=filename))
     except Exception as error:
         app.logger.exception("Could not build report")
         return render_template(
             "index.html",
             connected=True,
+            cutoff_date=cutoff_date,
             exclusion_days=exclusion_days,
             window_days=window_days,
             datasets=list_datasets(DATASETS_DIR),
@@ -195,7 +212,8 @@ def upload_dataset():
         return redirect(url_for("index", dataset=filename))
     except Exception as error:
         app.logger.exception("Dataset import failed")
-        return render_template("index.html", connected=bool(_credentials()), datasets=list_datasets(DATASETS_DIR), exclusion_days=90, window_days=30, error=str(error)), 400
+        default_cutoff = date.today() - timedelta(days=90)
+        return render_template("index.html", connected=bool(_credentials()), datasets=list_datasets(DATASETS_DIR), cutoff_date=default_cutoff, exclusion_days=90, window_days=30, error=str(error)), 400
 
 
 @app.route("/connect")

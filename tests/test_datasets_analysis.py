@@ -54,3 +54,19 @@ class DatasetAnalysisTest(TestCase):
         self.assertEqual(bonaire["grouping_basis"], "playlist")
         self.assertEqual(bonaire["playlist_details"], [playlist])
         self.assertEqual(len(bonaire["included_video_titles"]), 2)
+
+    def test_cdt_title_variants_are_one_trip(self):
+        report = self.sample_report()
+        variants = [
+            ("c1", "Montana | CDT 2022 SOBO Ep 1"),
+            ("c2", "Wyoming | CDT SOBO Ep 50"),
+            ("c3", "Colorado | CDT Ep 100"),
+            ("c4", "New Mexico | Continental Divide Trail Ep 150"),
+        ]
+        for video_id, title in variants:
+            report.catalog.append({"video_id": video_id, "title": title, "published_at": "2022-01-01"})
+            report.rows.append({"video_id": video_id, "title": title, "views": 10, "previous_views": 5, "likes": 0, "shares": 0, "comments": 0})
+
+        analysis = analyze_dataset(report_to_dataset(report, 90, 7))
+        cdt = next(trip for trip in analysis["trips"] if trip["name"] == "Continental Divide Trail 2022 Sobo")
+        self.assertEqual(cdt["video_count"], 4)

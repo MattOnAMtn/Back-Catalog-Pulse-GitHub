@@ -7,7 +7,7 @@ A small, read-only local web app for finding older YouTube videos that are recei
 
 The report includes sortable views, likes, shares, comments, publication date/age, **Surging** (percentage change in views), and the number of newer uploads excluded by the age cutoff. Clicking a title opens the video on YouTube.
 
-The channel-coverage summary separates total uploads, recent videos excluded by the publication cutoff, eligible older videos, eligible videos with activity, and eligible videos without activity. It also states the exact included publication date and both analytics comparison periods.
+The publication cutoff is selected with a date picker (default: 90 days ago), while the recent activity window remains an adjustable number of days (default: 30). The channel-coverage summary separates total uploads, videos newer than the chosen cutoff, eligible older videos, eligible videos with activity, and eligible videos without activity. It also states the exact included publication date and both analytics comparison periods.
 
 Each new query is automatically saved as a portable JSON snapshot in `datasets/`. Opening the app loads the newest saved snapshot without contacting YouTube. Use **New YouTube query** when you want fresh data, the saved-dataset menu to revisit a prior query, **Download JSON** to export one, or **Import JSON** to load an exported snapshot. The **Analyze** button performs local title-pattern analysis to identify recurring trip series and summarize their current activity; it does not send data to an AI service.
 

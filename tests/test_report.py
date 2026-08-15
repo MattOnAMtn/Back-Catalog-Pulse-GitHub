@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from unittest import TestCase
 from unittest.mock import patch
 
@@ -34,7 +34,7 @@ class ReportTest(TestCase):
                 "new": {"title": "New upload", "published_at": new, "thumbnail": ""},
             },
         ):
-            result = build_report(object(), exclusion_days=30, window_days=7)
+            result = build_report(object(), published_cutoff_date=date(2025, 1, 2), window_days=7)
         self.assertEqual([row["video_id"] for row in result.rows], ["old"])
         self.assertEqual(result.rows[0]["surge_percent"], 200.0)
         self.assertEqual(result.rows[0]["previous_views"], 50)

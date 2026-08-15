@@ -24,7 +24,11 @@ def _clean_segment(segment: str) -> str:
     value = re.sub(r"\b(?:episode|ep\.?|part|day)\s*#?\s*\d+[a-z]?\b", " ", value)
     value = re.sub(r"\b(?:episode|ep\.?|part)\b\s*$", " ", value)
     value = re.sub(r"[^a-z0-9' ]+", " ", value)
-    return " ".join(value.split()).strip()
+    value = " ".join(value.split()).strip()
+    # These are naming variants from the same Continental Divide Trail series.
+    if re.fullmatch(r"(?:cdt|continental divide trail)(?: 2022)?(?: sobo)?(?: thru hike)?", value):
+        return "continental divide trail 2022 sobo"
+    return value
 
 
 def _display_name(cleaned: str) -> str:
