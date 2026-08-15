@@ -5,7 +5,7 @@ import secrets
 import logging
 import threading
 from pathlib import Path
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from types import SimpleNamespace
 
 from dotenv import load_dotenv
@@ -37,6 +37,16 @@ file_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message
 app.logger.addHandler(file_handler)
 app.logger.setLevel(logging.INFO)
 QUERY_LOCK = threading.Lock()
+
+
+@app.template_filter("local_timestamp")
+def local_timestamp(value):
+    if not value:
+        return "Unknown time"
+    parsed = value if isinstance(value, datetime) else datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone().strftime("%b %-d, %Y · %-I:%M %p")
 
 
 def _flow(state: str | None = None) -> Flow:
