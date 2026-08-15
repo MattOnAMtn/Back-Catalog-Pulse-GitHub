@@ -40,3 +40,17 @@ class DatasetAnalysisTest(TestCase):
         self.assertEqual(mississippi["episode_retention"], 80.0)
         self.assertEqual(mississippi["view_change"], 50)
         self.assertEqual(mississippi["subscriber_change"], 0)
+
+    def test_playlist_membership_combines_different_title_patterns(self):
+        report = self.sample_report()
+        playlist = {"id": "PL_bonaire_2024", "title": "Bonaire 2024 Diving"}
+        for video in report.catalog:
+            if video["video_id"] in {"b1", "b2"}:
+                video["playlists"] = [playlist]
+
+        analysis = analyze_dataset(report_to_dataset(report, 90, 7))
+        bonaire = next(trip for trip in analysis["trips"] if trip["name"] == "Bonaire 2024 Diving")
+        self.assertEqual(bonaire["video_count"], 2)
+        self.assertEqual(bonaire["grouping_basis"], "playlist")
+        self.assertEqual(bonaire["playlist_details"], [playlist])
+        self.assertEqual(len(bonaire["included_video_titles"]), 2)

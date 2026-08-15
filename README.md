@@ -15,6 +15,8 @@ While a new YouTube query is running, the interface displays a blocking progress
 
 New snapshots also request watch time, subscribers gained and lost, channel-level traffic sources, and disclosed YouTube search terms. Supplemental traffic/search queries are best-effort: if YouTube does not expose one for the channel or period, the core dataset still saves successfully. Analysis includes trip view share and engagement, net subscriber change, activity classifications, title-topic patterns, dormant-series prompts, recommendations, and history from prior snapshots created with matching parameters.
 
+New queries also save owned-channel playlist membership. Analyze uses specific playlist membership as stronger trip-grouping evidence than repeated title text. The information icon beside each trip lists the represented playlists and included video titles. Older snapshots without playlist data continue to use title-pattern grouping.
+
 ## One-time Google setup
 
 You need a Google Cloud project because YouTube does not permit channel analytics without the channel owner's OAuth consent.

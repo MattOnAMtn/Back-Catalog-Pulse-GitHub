@@ -26,6 +26,8 @@ class ReportTest(TestCase):
         new = datetime.now(timezone.utc)
         analytics = FakeAnalytics()
         with patch("youtube_service.build", side_effect=[object(), analytics]), patch(
+            "youtube_service._playlist_memberships", return_value={}
+        ), patch(
             "youtube_service._all_uploads",
             return_value={
                 "old": {"title": "Old hit", "published_at": old, "thumbnail": ""},

@@ -9,6 +9,10 @@ GENERIC = {
     "the adventure", "trip update", "travel vlog", "channel update", "gear review",
     "planning", "highlights", "introduction", "overview",
 }
+GENERIC_PLAYLISTS = {
+    "uploads", "popular uploads", "all videos", "videos", "shorts", "youtube shorts",
+    "hiking", "diving", "paddling", "travel", "adventures", "favorites",
+}
 STOPWORDS = {
     "the", "and", "for", "from", "with", "this", "that", "into", "our", "your", "day",
     "episode", "video", "trip", "part", "paddle", "dive", "ep", "of", "to", "in", "on", "a",
@@ -54,24 +58,53 @@ def analyze_dataset(dataset: dict[str, Any], histories: list[dict[str, Any]] | N
     catalog = report.get("catalog", report["rows"])
     current_by_id = {row["video_id"]: row for row in report["rows"]}
     candidate_videos: dict[str, set[str]] = defaultdict(set)
+    playlist_videos: dict[str, set[str]] = defaultdict(set)
+    playlist_display: dict[str, dict[str, str]] = {}
     for video in catalog:
         for candidate in _candidates(video["title"]):
             candidate_videos[candidate].add(video["video_id"])
+        for playlist in video.get("playlists", []):
+            cleaned = _clean_segment(playlist["title"])
+            if cleaned and cleaned not in GENERIC_PLAYLISTS and len(cleaned.split()) >= 2:
+                playlist_videos[cleaned].add(video["video_id"])
+                playlist_display[cleaned] = playlist
 
     recurring = {name: ids for name, ids in candidate_videos.items() if len(ids) >= 2}
+    recurring_playlists = {name: ids for name, ids in playlist_videos.items() if len(ids) >= 2}
     assignments: dict[str, str] = {}
-    # Prefer phrases covering more videos, then longer/more descriptive names.
+    assignment_basis: dict[str, str] = {}
+    # A specific owned playlist is stronger evidence than title phrasing. Prefer
+    # descriptive playlist names and smaller, more focused playlist membership.
+    playlist_ranked = sorted(
+        recurring_playlists,
+        key=lambda name: (len(name.split()), -len(recurring_playlists[name]), len(name)),
+        reverse=True,
+    )
+    for name in playlist_ranked:
+        for video_id in recurring_playlists[name]:
+            if video_id not in assignments:
+                assignments[video_id] = name
+                assignment_basis[video_id] = "playlist"
+
+    # Fall back to repeated title phrases for videos without a useful playlist.
     ranked = sorted(recurring, key=lambda name: (len(recurring[name]), len(name.split()), len(name)), reverse=True)
     for name in ranked:
         for video_id in recurring[name]:
             current = assignments.get(video_id)
-            if current is None or len(name.split()) > len(current.split()):
+            if current is None:
                 assignments[video_id] = name
+                assignment_basis[video_id] = "title"
 
     groups: dict[str, dict[str, Any]] = {}
     for name in set(assignments.values()):
         catalog_ids = {video_id for video_id, assigned in assignments.items() if assigned == name}
         active_rows = [current_by_id[video_id] for video_id in catalog_ids if video_id in current_by_id]
+        group_catalog = [video for video in catalog if video["video_id"] in catalog_ids]
+        playlist_details = {
+            playlist["id"]: playlist
+            for video in group_catalog
+            for playlist in video.get("playlists", [])
+        }
         episodes = sorted(
             [(_episode_number(row["title"]), row["views"], row["title"]) for row in active_rows if _episode_number(row["title"]) is not None],
             key=lambda episode: episode[0],
@@ -105,6 +138,9 @@ def analyze_dataset(dataset: dict[str, Any], histories: list[dict[str, Any]] | N
             ) if views else 0,
             "episode_retention": episode_retention,
             "numbered_episodes_active": len(episodes),
+            "playlist_details": sorted(playlist_details.values(), key=lambda playlist: playlist["title"].lower()),
+            "included_video_titles": sorted(video["title"] for video in group_catalog),
+            "grouping_basis": "playlist" if any(assignment_basis.get(video_id) == "playlist" for video_id in catalog_ids) else "title pattern",
         }
 
     trips = sorted(groups.values(), key=lambda group: (group["views"], group["active_count"], group["video_count"]), reverse=True)

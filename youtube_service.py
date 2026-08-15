@@ -77,6 +77,48 @@ def _all_uploads(youtube) -> dict[str, dict[str, Any]]:
     return videos
 
 
+def _playlist_memberships(youtube) -> dict[str, list[dict[str, str]]]:
+    memberships: dict[str, list[dict[str, str]]] = {}
+    playlists: list[dict[str, str]] = []
+    page_token = None
+    try:
+        while True:
+            response = youtube.playlists().list(
+                part="snippet",
+                mine=True,
+                maxResults=50,
+                pageToken=page_token,
+            ).execute()
+            playlists.extend(
+                {"id": item["id"], "title": item["snippet"]["title"]}
+                for item in response.get("items", [])
+            )
+            page_token = response.get("nextPageToken")
+            if not page_token:
+                break
+
+        for playlist in playlists:
+            page_token = None
+            while True:
+                response = youtube.playlistItems().list(
+                    part="contentDetails",
+                    playlistId=playlist["id"],
+                    maxResults=50,
+                    pageToken=page_token,
+                ).execute()
+                for item in response.get("items", []):
+                    video_id = item.get("contentDetails", {}).get("videoId")
+                    if video_id:
+                        memberships.setdefault(video_id, []).append(playlist)
+                page_token = response.get("nextPageToken")
+                if not page_token:
+                    break
+    except HttpError:
+        # Playlist context improves grouping but must never block the core report.
+        return {}
+    return memberships
+
+
 def _analytics_rows(
     analytics,
     start_date: date,
@@ -186,6 +228,9 @@ def build_report(credentials: Credentials, exclusion_days: int, window_days: int
     published_cutoff = datetime.now(timezone.utc) - timedelta(days=exclusion_days)
 
     uploads = _all_uploads(youtube)
+    playlist_memberships = _playlist_memberships(youtube)
+    for video_id, video in uploads.items():
+        video["playlists"] = playlist_memberships.get(video_id, [])
     eligible_ids = [
         video_id
         for video_id, video in uploads.items()
@@ -228,6 +273,7 @@ def build_report(credentials: Credentials, exclusion_days: int, window_days: int
             "video_id": video_id,
             "title": video["title"],
             "published_at": video["published_at"].date().isoformat(),
+            "playlists": video.get("playlists", []),
         }
         for video_id, video in uploads.items()
         if video["published_at"] <= published_cutoff
