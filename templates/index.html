@@ -49,7 +49,7 @@
             <select name="dataset" onchange="this.form.submit()">
               {% if not datasets %}<option>No saved datasets yet</option>{% endif %}
               {% for item in datasets %}
-                <option value="{{ item.filename }}" {{ 'selected' if item.filename == selected_dataset else '' }}>{{ item.generated_at[:16].replace('T', ' ') }} · Videos {{ item.exclusion_days }}+ days old · {{ item.window_days }}-day activity · {{ item.row_count }} of {{ item.eligible_count }} eligible active</option>
+                <option value="{{ item.filename }}" {{ 'selected' if item.filename == selected_dataset else '' }}>{{ item.generated_at|local_timestamp }} · Videos {{ item.exclusion_days }}+ days old · {{ item.window_days }}-day activity · {{ item.row_count }} of {{ item.eligible_count }} eligible active</option>
               {% endfor %}
             </select>
           </label>
@@ -95,7 +95,7 @@
             </div>
             <div class="analysis-grid secondary">
               <div><h3>YouTube search terms</h3><ol class="ranked-list">{% for term in analysis.search_terms[:10] %}<li><span>{{ term.term }}</span><strong>{{ term.views }} views</strong></li>{% else %}<li>Not available or withheld by YouTube.</li>{% endfor %}</ol></div>
-              <div><h3>Saved-query history</h3><ol class="ranked-list">{% for point in analysis.history_points[-8:] %}<li><span>{{ point.generated_at[:16].replace('T', ' ') }}</span><strong>{{ point.views }} views · {{ point.active_videos }} videos</strong></li>{% else %}<li>Run more queries with these same parameters to build history.</li>{% endfor %}</ol></div>
+              <div><h3>Saved-query history</h3><ol class="ranked-list">{% for point in analysis.history_points[-8:] %}<li><span>{{ point.generated_at|local_timestamp }}</span><strong>{{ point.views }} views · {{ point.active_videos }} videos</strong></li>{% else %}<li>Run more queries with these same parameters to build history.</li>{% endfor %}</ol></div>
             </div>
             <p class="method">{{ analysis.method_note }}</p>
           </section>
