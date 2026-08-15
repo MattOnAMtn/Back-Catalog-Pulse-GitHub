@@ -20,3 +20,14 @@ document.querySelectorAll("#report th").forEach((header, index) => {
   header.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") sort(); });
 });
 
+const queryForm = document.querySelector("#query-form");
+const queryOverlay = document.querySelector("#query-overlay");
+if (queryForm && queryOverlay) {
+  queryForm.addEventListener("submit", () => {
+    queryOverlay.classList.add("visible");
+    queryOverlay.setAttribute("aria-hidden", "false");
+    document.body.classList.add("query-running");
+    const submitButton = queryForm.querySelector("button[type='submit']");
+    if (submitButton) submitButton.disabled = true;
+  });
+}

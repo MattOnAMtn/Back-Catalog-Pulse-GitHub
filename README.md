@@ -2,14 +2,16 @@
 
 A small, read-only local web app for finding older YouTube videos that are receiving activity now. It deliberately keeps two controls independent:
 
-- **Exclusion age** (default 30 days): hides videos published more recently than this.
-- **Activity window** (default 7 days): totals activity over this many complete days and compares it with the immediately preceding window of the same length.
+- **Exclusion age** (default 90 days): hides videos published more recently than this.
+- **Activity window** (default 30 days): totals activity over this many complete days and compares it with the immediately preceding window of the same length.
 
 The report includes sortable views, likes, shares, comments, publication date/age, **Surging** (percentage change in views), and the number of newer uploads excluded by the age cutoff. Clicking a title opens the video on YouTube.
 
 The channel-coverage summary separates total uploads, recent videos excluded by the publication cutoff, eligible older videos, eligible videos with activity, and eligible videos without activity. It also states the exact included publication date and both analytics comparison periods.
 
 Each new query is automatically saved as a portable JSON snapshot in `datasets/`. Opening the app loads the newest saved snapshot without contacting YouTube. Use **New YouTube query** when you want fresh data, the saved-dataset menu to revisit a prior query, **Download JSON** to export one, or **Import JSON** to load an exported snapshot. The **Analyze** button performs local title-pattern analysis to identify recurring trip series and summarize their current activity; it does not send data to an AI service.
+
+While a new YouTube query is running, the interface displays a blocking progress screen and disables its controls. The server also permits only one query at a time to prevent duplicate API work.
 
 New snapshots also request watch time, subscribers gained, channel-level traffic sources, and disclosed YouTube search terms. Supplemental traffic/search queries are best-effort: if YouTube does not expose one for the channel or period, the core dataset still saves successfully. Analysis includes trip view share and engagement, activity classifications, title-topic patterns, dormant-series prompts, recommendations, and history from prior snapshots created with matching parameters.
 

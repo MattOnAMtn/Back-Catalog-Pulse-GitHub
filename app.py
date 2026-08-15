@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import secrets
 import logging
+import threading
 from pathlib import Path
 from datetime import date, datetime, timedelta
 from types import SimpleNamespace
@@ -35,6 +36,7 @@ file_handler.setLevel(logging.INFO)
 file_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
 app.logger.addHandler(file_handler)
 app.logger.setLevel(logging.INFO)
+QUERY_LOCK = threading.Lock()
 
 
 def _flow(state: str | None = None) -> Flow:
@@ -87,7 +89,7 @@ def _render_saved(data, filename, analysis=None, status=None):
 @app.route("/")
 def index():
     exclusion_days = max(1, min(request.args.get("exclude", 90, type=int), 36500))
-    window_days = max(1, min(request.args.get("window", 7, type=int), 365))
+    window_days = max(1, min(request.args.get("window", 30, type=int), 365))
     credentials = _credentials()
     if not credentials:
         return render_template("index.html", connected=False, missing_secret=not CLIENT_SECRET_PATH.exists())
@@ -104,10 +106,19 @@ def index():
 @app.route("/query")
 def new_query():
     exclusion_days = max(1, min(request.args.get("exclude", 90, type=int), 36500))
-    window_days = max(1, min(request.args.get("window", 7, type=int), 365))
+    window_days = max(1, min(request.args.get("window", 30, type=int), 365))
     credentials = _credentials()
     if not credentials:
         return redirect(url_for("index"))
+    if not QUERY_LOCK.acquire(blocking=False):
+        return render_template(
+            "index.html",
+            connected=True,
+            exclusion_days=exclusion_days,
+            window_days=window_days,
+            datasets=list_datasets(DATASETS_DIR),
+            error="A YouTube query is already running. Please keep its window open until it finishes.",
+        ), 409
     try:
         report = build_report(credentials, exclusion_days, window_days)
         filename = save_dataset(DATASETS_DIR, report_to_dataset(report, exclusion_days, window_days))
@@ -122,6 +133,8 @@ def new_query():
             datasets=list_datasets(DATASETS_DIR),
             error=str(error),
         ), 502
+    finally:
+        QUERY_LOCK.release()
 
 
 @app.route("/analyze")
@@ -159,7 +172,7 @@ def upload_dataset():
         return redirect(url_for("index", dataset=filename))
     except Exception as error:
         app.logger.exception("Dataset import failed")
-        return render_template("index.html", connected=bool(_credentials()), datasets=list_datasets(DATASETS_DIR), exclusion_days=90, window_days=7, error=str(error)), 400
+        return render_template("index.html", connected=bool(_credentials()), datasets=list_datasets(DATASETS_DIR), exclusion_days=90, window_days=30, error=str(error)), 400
 
 
 @app.route("/connect")

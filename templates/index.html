@@ -31,7 +31,7 @@
         {% endif %}
       </section>
     {% else %}
-      <form class="controls card" method="get" action="{{ url_for('new_query') }}">
+      <form class="controls card" id="query-form" method="get" action="{{ url_for('new_query') }}">
         <label>Exclude videos newer than
           <span><input name="exclude" type="number" min="1" max="36500" value="{{ exclusion_days }}"> days</span>
           {% if report %}<small>Includes videos published on or before {{ report.published_cutoff_date.strftime('%b %-d, %Y') }}.</small>{% endif %}
@@ -147,6 +147,14 @@
       {% endif %}
     {% endif %}
   </main>
+  <div class="query-overlay" id="query-overlay" aria-hidden="true">
+    <div class="query-progress card" role="status" aria-live="assertive">
+      <div class="spinner" aria-hidden="true"></div>
+      <h2>Querying YouTube…</h2>
+      <p>Collecting the catalog, activity, comparison metrics, traffic sources, and search data.</p>
+      <small>Large channels can take a few minutes. Keep this window open.</small>
+    </div>
+  </div>
   <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>
