@@ -37,6 +37,7 @@ class ReportTest(TestCase):
         self.assertEqual(result.rows[0]["surge_percent"], 200.0)
         self.assertEqual(result.rows[0]["previous_views"], 50)
         self.assertEqual(result.excluded_recent_count, 1)
+        self.assertIsNotNone(result.published_cutoff_date)
         self.assertEqual(len(analytics.calls), 4)
         self.assertEqual(analytics.calls[0]["filters"], "video==old")
         self.assertNotIn("startIndex", analytics.calls[0])

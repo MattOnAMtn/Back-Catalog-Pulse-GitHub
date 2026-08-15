@@ -4,7 +4,7 @@ import os
 import secrets
 import logging
 from pathlib import Path
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from types import SimpleNamespace
 
 from dotenv import load_dotenv
@@ -60,7 +60,12 @@ def _report_view(data):
     for key in ("start_date", "end_date", "previous_start_date", "previous_end_date"):
         report[key] = date.fromisoformat(report[key])
     report["generated_at"] = datetime.fromisoformat(report["generated_at"].replace("Z", "+00:00"))
+    cutoff_value = report.get("published_cutoff_date")
+    report["published_cutoff_date"] = date.fromisoformat(cutoff_value) if cutoff_value else report["generated_at"].date() - timedelta(days=data["query"]["exclusion_days"])
     report["rows"] = sorted(report["rows"], key=lambda row: row["views"], reverse=True)
+    report["eligible_count"] = len(report.get("catalog", report["rows"]))
+    report["total_channel_videos"] = report["eligible_count"] + report["excluded_recent_count"] if report["excluded_recent_count"] is not None else None
+    report["inactive_eligible_count"] = max(report["eligible_count"] - len(report["rows"]), 0)
     return SimpleNamespace(**report)
 
 

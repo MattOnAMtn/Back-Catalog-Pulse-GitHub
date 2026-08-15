@@ -4,7 +4,7 @@ from pathlib import Path
 from unittest import TestCase
 
 from analysis_engine import analyze_dataset
-from dataset_store import load_dataset, report_to_dataset, save_dataset
+from dataset_store import list_datasets, load_dataset, report_to_dataset, save_dataset
 from youtube_service import ReportResult
 
 
@@ -28,7 +28,10 @@ class DatasetAnalysisTest(TestCase):
         with TemporaryDirectory() as directory:
             filename = save_dataset(Path(directory), data)
             loaded = load_dataset(Path(directory), filename)
+            listing = list_datasets(Path(directory))[0]
         self.assertEqual(loaded["query"], {"exclusion_days": 90, "window_days": 7})
+        self.assertEqual(listing["eligible_count"], 4)
+        self.assertEqual(listing["row_count"], 3)
         analysis = analyze_dataset(loaded)
         names = [trip["name"] for trip in analysis["trips"]]
         self.assertTrue(any("Mississippi Source to Sea" in name for name in names))

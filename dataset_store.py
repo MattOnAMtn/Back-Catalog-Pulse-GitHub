@@ -78,6 +78,8 @@ def list_datasets(directory: Path) -> list[dict[str, Any]]:
                 "exclusion_days": data["query"]["exclusion_days"],
                 "window_days": data["query"]["window_days"],
                 "row_count": len(report["rows"]),
+                "eligible_count": len(report.get("catalog", report["rows"])),
+                "total_count": len(report.get("catalog", report["rows"])) + report.get("excluded_recent_count", 0) if report.get("excluded_recent_count") is not None else None,
             })
         except (ValueError, OSError, json.JSONDecodeError, KeyError):
             continue

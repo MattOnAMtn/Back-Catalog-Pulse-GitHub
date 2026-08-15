@@ -34,9 +34,11 @@
       <form class="controls card" method="get" action="{{ url_for('new_query') }}">
         <label>Exclude videos newer than
           <span><input name="exclude" type="number" min="1" max="36500" value="{{ exclusion_days }}"> days</span>
+          {% if report %}<small>Includes videos published on or before {{ report.published_cutoff_date.strftime('%b %-d, %Y') }}.</small>{% endif %}
         </label>
         <label>Activity window
           <span><input name="window" type="number" min="1" max="365" value="{{ window_days }}"> days</span>
+          {% if report %}<small>Current period: {{ report.start_date.strftime('%b %-d') }}–{{ report.end_date.strftime('%b %-d, %Y') }}.</small>{% endif %}
         </label>
         <button type="submit">New YouTube query</button>
       </form>
@@ -47,7 +49,7 @@
             <select name="dataset" onchange="this.form.submit()">
               {% if not datasets %}<option>No saved datasets yet</option>{% endif %}
               {% for item in datasets %}
-                <option value="{{ item.filename }}" {{ 'selected' if item.filename == selected_dataset else '' }}>{{ item.generated_at[:16].replace('T', ' ') }} · {{ item.exclusion_days }}d excluded · {{ item.window_days }}d activity · {{ item.row_count }} videos</option>
+                <option value="{{ item.filename }}" {{ 'selected' if item.filename == selected_dataset else '' }}>{{ item.generated_at[:16].replace('T', ' ') }} · Videos {{ item.exclusion_days }}+ days old · {{ item.window_days }}-day activity · {{ item.row_count }} of {{ item.eligible_count }} eligible active</option>
               {% endfor %}
             </select>
           </label>
@@ -98,10 +100,16 @@
             <p class="method">{{ analysis.method_note }}</p>
           </section>
         {% endif %}
-        <div class="summary">
-          <div class="summary-counts"><span><strong>{{ report.rows|length }}</strong> active older videos</span>{% if report.excluded_recent_count is not none %}<span><strong>{{ report.excluded_recent_count }}</strong> excluded by {{ exclusion_days }}-day cutoff</span>{% endif %}</div>
-          <p>{{ report.start_date.strftime('%b %-d') }}–{{ report.end_date.strftime('%b %-d, %Y') }} compared with {{ report.previous_start_date.strftime('%b %-d') }}–{{ report.previous_end_date.strftime('%b %-d') }}</p>
-        </div>
+        <section class="coverage card">
+          <div class="coverage-heading"><div><p class="eyebrow">Channel coverage</p><h2>What this dataset includes</h2></div><p>Includes videos published on or before <strong>{{ report.published_cutoff_date.strftime('%b %-d, %Y') }}</strong>. Activity measured <strong>{{ report.start_date.strftime('%b %-d') }}–{{ report.end_date.strftime('%b %-d, %Y') }}</strong>, compared with {{ report.previous_start_date.strftime('%b %-d') }}–{{ report.previous_end_date.strftime('%b %-d, %Y') }}.</p></div>
+          <div class="coverage-grid">
+            <div><strong>{{ report.total_channel_videos if report.total_channel_videos is not none else '—' }}</strong><span>Total channel videos</span></div>
+            <div><strong>{{ report.excluded_recent_count if report.excluded_recent_count is not none else '—' }}</strong><span>Excluded: published in last {{ exclusion_days }} days</span></div>
+            <div><strong>{{ report.eligible_count }}</strong><span>Eligible older videos</span></div>
+            <div class="highlight"><strong>{{ report.rows|length }}</strong><span>With activity in selected {{ window_days }} days</span></div>
+            <div><strong>{{ report.inactive_eligible_count }}</strong><span>Eligible with no activity</span></div>
+          </div>
+        </section>
         {% if not report.shares_available %}
           <p class="notice">Shares aren’t available for this channel/report combination, so that column shows zero. All other metrics are unaffected.</p>
         {% endif %}

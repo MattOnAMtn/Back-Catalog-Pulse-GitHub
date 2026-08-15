@@ -28,6 +28,7 @@ class ReportResult:
     generated_at: datetime
     excluded_recent_count: int = 0
     insights: dict[str, Any] = field(default_factory=dict)
+    published_cutoff_date: str | None = None
 
 
 def load_credentials(token_path: Path) -> Credentials | None:
@@ -241,4 +242,5 @@ def build_report(credentials: Credentials, exclusion_days: int, window_days: int
         generated_at=datetime.now(timezone.utc),
         excluded_recent_count=sum(1 for video in uploads.values() if video["published_at"] > published_cutoff),
         insights=_supplemental_insights(analytics, start_date, end_date),
+        published_cutoff_date=published_cutoff.date().isoformat(),
     )
