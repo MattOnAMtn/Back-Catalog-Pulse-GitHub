@@ -19,19 +19,21 @@ from dataset_store import import_dataset, list_datasets, load_dataset, report_to
 
 
 BASE_DIR = Path(__file__).resolve().parent
-TOKEN_PATH = BASE_DIR / "token.json"
-CLIENT_SECRET_PATH = BASE_DIR / "client_secret.json"
-DATASETS_DIR = BASE_DIR / "datasets"
+DATA_DIR = Path(os.getenv("BACK_CATALOG_DATA_DIR", str(BASE_DIR))).expanduser().resolve()
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+TOKEN_PATH = DATA_DIR / "token.json"
+CLIENT_SECRET_PATH = DATA_DIR / "client_secret.json"
+DATASETS_DIR = DATA_DIR / "datasets"
 
 # OAuthlib requires HTTPS by default. Google explicitly permits HTTP loopback
 # redirects for installed/local applications, and this server only binds to
 # 127.0.0.1 (it is not exposed to the network).
 os.environ.setdefault("OAUTHLIB_INSECURE_TRANSPORT", "1")
 
-load_dotenv(BASE_DIR / ".env")
+load_dotenv(DATA_DIR / ".env")
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", secrets.token_hex(32))
-file_handler = logging.FileHandler(BASE_DIR / "back_catalog_pulse.log")
+file_handler = logging.FileHandler(DATA_DIR / "back_catalog_pulse.log")
 file_handler.setLevel(logging.INFO)
 file_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
 app.logger.addHandler(file_handler)

@@ -1,5 +1,7 @@
 # Back Catalog Pulse
 
+A private, local YouTube analytics dashboard that reveals which older videos and trip series are currently attracting views, engagement, and renewed interest.
+
 A small, read-only local web app for finding older YouTube videos that are receiving activity now. It deliberately keeps two controls independent:
 
 - **Exclusion age** (default 90 days): hides videos published more recently than this.
@@ -16,6 +18,12 @@ While a new YouTube query is running, the interface displays a blocking progress
 New snapshots also request watch time, subscribers gained and lost, channel-level traffic sources, and disclosed YouTube search terms. Supplemental traffic/search queries are best-effort: if YouTube does not expose one for the channel or period, the core dataset still saves successfully. Analysis includes trip view share and engagement, net subscriber change, activity classifications, title-topic patterns, dormant-series prompts, recommendations, and history from prior snapshots created with matching parameters.
 
 New queries also save owned-channel playlist membership. Analyze uses specific playlist membership as stronger trip-grouping evidence than repeated title text. The information icon beside each trip lists the represented playlists and included video titles. Older snapshots without playlist data continue to use title-pattern grouping.
+
+## Native macOS app
+
+`Back-Catalog-Pulse-macOS.zip` contains a native macOS wrapper for personal use. Unzip it, move **Back Catalog Pulse** to Applications, and open it normally. It runs the existing local analytics service invisibly and displays the interface in its own Mac window. Quitting the app stops the service.
+
+Credentials, logs, and saved datasets live in `~/Library/Application Support/Back Catalog Pulse`. The test build is ad-hoc signed; distributing it to other people without macOS security warnings requires Apple Developer ID signing and notarization.
 
 ## One-time Google setup
 
